@@ -39,22 +39,105 @@ int labelSet(int target, int currLabel){
     } 
 }
 
-vector<int> perceptron(vector< vector<int> > matrix, int passes, int target){
-    vector<int> w(784, 0);
-    int dot_product = 0;
-    int label = 0;
+vector< vector<char> > getSubstrings(vector<char> charVec, int length){
+   vector< vector<char> > subStringMatrix;
+   
+   vector<char> buffer;
 
-    for(int p = 0; p < passes; p++){
-        for(int i = 0; i < matrix.size(); i++){
-            label = labelSet(target, matrix[i][784]);
-            dot_product = inner_product(w.begin(), w.end(), matrix[i].begin(), 0);
+   for(int i = 0; i <= charVec.size() - length; i++){
+        for(int j = 0; j < length; j++){
+            buffer.push_back(charVec[i+j]);
+        }
+        if(find(subStringMatrix.begin(), subStringMatrix.end(), buffer) == subStringMatrix.end()){
+            subStringMatrix.push_back(buffer);
+        }
+        buffer.clear();
+   } 
 
-            if(dot_product*label <= 0){
-                w = vectorAdd(w, vectorMul(matrix[i], label)); 
-            }
+   return subStringMatrix;
+} 
+
+int compareSubstrings(vector< vector<char> > v1, vector< vector<char> > v2){
+    int count = 0;
+
+    for(int i = 0; i < v1.size(); i++){
+        if(find(v2.begin(), v2.end(), v1[i]) != v2.end()){
+            count++;
         }
     }
-    return w;
+
+    return count;
+}
+
+vector<int> perceptron(vector< pair< vector<char>, int> > matrix, int length){
+    vector<int> changeTracker;
+    int label = 0; 
+    long long int w = 0;
+
+    changeTracker.push_back(1);
+
+    int counter = 0;
+
+    vector< vector<char> > sub1;
+    vector< vector<char> > sub2;
+
+    for(int i = 1; i < matrix.size(); i++){
+        sub1 = getSubstrings(matrix[i].first, length);
+        for(int j = 0; j < matrix.size(); j++){
+            if(changeTracker[j] == 1){
+                label = labelSet(matrix[i].second, matrix[j].second);      
+                sub2 = getSubstrings(matrix[j].first, length);
+                counter = compareSubstrings(sub1, sub2);
+                w = w + (label*counter);
+            }
+        }
+
+        if(w <= 0){
+            changeTracker.push_back(1);
+        }
+        else{
+            changeTracker.push_back(0);
+        }
+
+        w = 0;
+        sub2.clear();
+        sub1.clear();       
+    }
+    
+    return changeTracker;
+}
+
+double pError(vector< pair< vector<char>, int> > train, vector< pair< vector<char>, int> > test, vector<int> changeTracker, int length){
+    int label = 0; 
+    long long int w = 0;
+
+    int counter = 0;
+    double error = 0;
+
+    vector< vector<char> > sub1;
+    vector< vector<char> > sub2;
+
+    for(int i = 0; i < test.size(); i++){
+        sub1 = getSubstrings(test[i].first, length);
+        for(int j = 0; j < changeTracker.size(); j++){
+            if(changeTracker[j] == 1){
+                label = labelSet(test[i].second, train[j].second);      
+                sub2 = getSubstrings(train[j].first, length);
+                counter = compareSubstrings(sub1, sub2);
+                w = w + (label*counter);
+            }
+        }
+
+        if(w <= 0){
+            error++;
+        }
+
+        w = 0;
+        sub2.clear();
+        sub1.clear();       
+    }
+    
+    return error/(double)test.size();
 }
 
 vector< pair< vector<char>, int> > fileToMatrix(string filename){
@@ -66,8 +149,6 @@ vector< pair< vector<char>, int> > fileToMatrix(string filename){
     char label[2];
     // Variable to hold number that used to be a char
     int number;
-
-    string s;
 
     pair< vector<char>, int> p;
 
@@ -114,11 +195,15 @@ int main() {
     string testFile = "hw5test.txt";
 
     vector< pair< vector<char>, int> > trainingVector = fileToMatrix(trainingFile);
-    cout<<"in main"<<endl;
-    //vector< pair< vector<char>, int> > testVector = fileToMatrix(testFile);
+    vector< pair< vector<char>, int> > testVector = fileToMatrix(testFile);
 
-    for(int i = 0; i < trainingVector.size(); i++){
-        //cout<<trainingVector[i].first[trainingVector[i].first.size()-1]<<endl;
+    int size = trainingVector.size();
+    vector<int> changeTracker = perceptron(trainingVector, 4);
+
+    double value = pError(trainingVector, testVector, changeTracker, 4);
+    cout<<value<<endl;
+    for(int i = 0; i < changeTracker.size(); i++){
+        //cout<<changeTracker[i];//<<endl;
     }
    
     return 0;
