@@ -202,9 +202,6 @@ int main() {
 
     double value = pError(trainingVector, testVector, changeTracker, 4);
     cout<<value<<endl;
-    for(int i = 0; i < changeTracker.size(); i++){
-        //cout<<changeTracker[i];//<<endl;
-    }
    
     return 0;
 }
